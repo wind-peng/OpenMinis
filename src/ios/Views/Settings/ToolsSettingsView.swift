@@ -17,10 +17,11 @@ import UserNotifications
 // that read it directly (minis-scheduled child-of-current, and the dispatcher's
 // refusal of a stale subagent_task call) follow automatically.
 //
-// Every other registered tool (shell_execute, file_read/write/edit,
-// read_image, memory_write/get) stays always available and does not
-// appear here — decided in review: they are the model's basic working
-// set, not something to withhold per user.
+// Every other registered tool (read_image, memory_write/get) stays always
+// available and does not appear here — decided in review: they are the
+// model's basic working set, not something to withhold per user.
+// [Sandbox removed 2026-11-10] shell_execute and file_read/write/edit
+// used to be in this always-available set; they no longer exist.
 //
 // Off means removed, not refused: `makeAgentTools()` leaves the definition
 // out of the schema and the system prompt drops the sentences that
@@ -35,6 +36,10 @@ enum AgentToolSwitch: String, CaseIterable {
     /// [T-user-ask] Default ON. Exposure also needs an interactive run
     /// (AIChatViewModel.computeUserAskExposure).
     case userAsk = "agent.tools.userAsk.enabled"
+    /// [T-phone-control] Phone Control (`phone_screen` + `phone_act`) —
+    /// Settings › Tools, default ON. The agent looks at the phone screen
+    /// (screen recording) and operates it (touch injection).
+    case phone = "agent.tools.phone.enabled"
 
     var key: String { rawValue }
 
@@ -60,6 +65,7 @@ enum AgentToolSwitch: String, CaseIterable {
         case .browser: return true
         case .agents: return true
         case .userAsk: return UserAskSettings.defaultEnabled
+        case .phone: return true
         }
     }
 
@@ -80,6 +86,7 @@ enum AgentToolSwitch: String, CaseIterable {
         case "browser_use": return .browser
         case SubAgentDefinition.toolName: return .agents
         case UserAskTool.name: return .userAsk
+        case "phone_screen", "phone_act": return .phone
         default: return nil
         }
     }
@@ -123,6 +130,7 @@ enum AgentToolSwitch: String, CaseIterable {
 
 struct ToolsSettingsView: View {
     @AppStorage(AgentToolSwitch.browser.key) private var browserEnabled: Bool = AgentToolSwitch.browser.defaultValue
+    @AppStorage(AgentToolSwitch.phone.key) private var phoneEnabled: Bool = AgentToolSwitch.phone.defaultValue
     // [T-user-ask]
     @AppStorage(UserAskSettings.enabledKey) private var userAskEnabled: Bool = UserAskSettings.defaultEnabled
     @AppStorage(UserAskSettings.timeoutMinutesKey) private var userAskTimeout: Int = UserAskSettings.defaultTimeoutMinutes
@@ -135,6 +143,15 @@ struct ToolsSettingsView: View {
                 toolRow(AppLocalized("Browser Use"), tool: "browser_use", icon: "globe", isOn: $browserEnabled)
             } footer: {
                 Text(AppLocalized("Browse the web in the in-app browser: open pages, read them, click and type. Stable and on by default. When off, the tool is removed from every conversation — the model does not see it at all."))
+            }
+            // [T-phone-control] Phone Control: the agent sees the phone
+            // screen and taps / types on it. Needs screen recording on
+            // (the agent can start it, or the user picks Minis in Control
+            // Center). Operates other apps — first use asks for confirmation.
+            Section {
+                toolRow(AppLocalized("Phone Control"), tool: "phone_screen, phone_act", icon: "iphone", isOn: $phoneEnabled)
+            } footer: {
+                Text(AppLocalized("Let the assistant look at the phone screen and operate it: tap, swipe, type, open apps. It stops before anything about paying or passwords. When off, the tools are removed from every conversation — the model does not see them at all."))
             }
             userAskSections
             // [T-sub-agents-v1] No Agents section here, and deliberately not

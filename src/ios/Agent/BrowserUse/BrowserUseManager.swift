@@ -3040,10 +3040,8 @@ final class BrowserDownloadCenter: ObservableObject {
         return "[browser_downloads] The browser is handling file download(s) NATIVELY "
             + "(triggered by page navigation/click, saved into this session's workspace):\n"
             + lines.map { "- \($0)" }.joined(separator: "\n")
-            + "\nDo NOT re-download these files with curl/wget in shell_execute. "
             + "Completed files are already fully saved at the given path; for in-progress "
-            + "downloads, wait and check again (e.g. via a later browser_use call or "
-            + "shell `ls -l /var/minis/workspace/`) instead of downloading in parallel."
+            + "downloads, wait and check again (e.g. via a later browser_use call) instead of downloading in parallel."
     }
 
     private func queueAgentEvent(sessionId: String, filename: String, line: String) {

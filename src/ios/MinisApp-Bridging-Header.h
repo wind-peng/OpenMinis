@@ -13,13 +13,13 @@
 // dependency-free path sanctioned by docs/backup-restore-design.md §5.2.
 #import <CommonCrypto/CommonKeyDerivation.h>
 
-// iSH umbrella header (includes all necessary headers)
-#include "ish/ish.h"
+// [Sandbox removed 2026-11-10] The iSH umbrella headers (ish/ish.h,
+// fs/devices.h) are gone with the sandbox: no Swift code used their C
+// symbols, and the stub ISHKernel no longer includes them. The headers
+// themselves only exist after the (now removed) native-dep build, so
+// leaving these includes would break the build in a fresh checkout.
 
-// Additional headers not in umbrella
-#include "fs/devices.h"
-
-// ISH Kernel Wrapper
+// ISH Kernel Wrapper (stub — see iSH/ISHKernel.m)
 #import "ISHKernel.h"
 
 // ISH Shell Executor (pipe-based process execution)
@@ -65,4 +65,7 @@
 #endif /* MinisApp_Bridging_Header_h */
 
 // rclone static library (deps/frameworks/Rclone.xcframework) — see RcloneBridge.swift
+// PhoneControl ("eyes + hands" for the agent): MiniPaw port — HID touch
+// injection, broadcast-frame screenshots, Vision OCR. See PhoneControlBridge.h.
+#import "PhoneControl/PhoneControlBridge.h"
 #import "librclone.h"

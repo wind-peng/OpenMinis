@@ -207,6 +207,10 @@ struct MinisApp: App {
             await ChatStore.shared.runDeferredMigrations()
             await ChatStore.shared.sweepZombieChildSessions()
         }
+        // PhoneControl ("eyes + hands"): load HID + screenshot interfaces,
+        // start the broadcast-frame server on 127.0.0.1:8310, create the hidden
+        // broadcast picker and activate the keepalive audio. Idempotent.
+        PhoneControl.startup()
     }
 
     /// [T-ios-reboot-keychain-identity-rotation] The sync bootstrap, factored out

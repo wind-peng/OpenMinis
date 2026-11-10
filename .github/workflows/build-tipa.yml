@@ -1,0 +1,155 @@
+# Build the Minis iOS app (with the PhoneControl eyes+hands implant) and
+# package it as a TrollStore-installable .tipa.
+#
+# SANDBOX REMOVED (2026-11-10, user decision): the iSH/Alpine Linux
+# sandbox is gone, so this workflow does NOT build the native deps
+# (no LAME, no FFmpeg, no iSH kernel, no Alpine rootfs). The only native
+# dep left is rclone (Backup remote destinations — independent of the
+# sandbox, pure Go build). The app builds with just Xcode + ldid.
+#
+# Two small pieces of the old dep setup survive because the (now inert)
+# NativeOffloads/*.m files still compile against them:
+# - iSH headers: copied from the deps/ish submodule into deps/include/ish
+#   (same layout build_ish.sh used to produce) so the offloads'
+#   #include "kernel/native_offload.h" resolves. No compilation.
+# - The libish C symbols the offloads call (native_offload_add_handler,
+#   native_offload_set_abort_handler) are stubbed in iSH/ISHKernel.m.
+#
+# - Runs on macos-26 with Xcode 26.2.
+# - Builds the Minis scheme unsigned (CODE_SIGNING_ALLOWED=NO), then
+#   fake-signs the app + every .appex innermost-first with ldid and the
+#   entitlements files, and zips Payload/ into Minis.tipa.
+# - The fork is public, so Actions minutes are free; the artifact is the
+#   deliverable (install with TrollStore on iOS 16.0+).
+name: Build Minis tipa
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/ios/**"
+      - "deps/**"
+      - ".github/workflows/build-tipa.yml"
+  workflow_dispatch:
+
+jobs:
+  build-tipa:
+    runs-on: macos-26
+    timeout-minutes: 120
+    steps:
+      - name: Check out (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Select Xcode 26.2
+        run: |
+          ls /Applications/ | grep -i xcode
+          sudo xcode-select -s /Applications/Xcode_26.2.app
+          xcodebuild -version
+          sudo xcodebuild -downloadComponent MetalToolchain || true
+          xcrun -sdk iphoneos metal --version || true
+
+      - name: Install build tools
+        run: |
+          brew install go ldid
+
+      - name: Copy ProviderCustomization.xcconfig
+        # The project uses Configs/ProviderCustomization.xcconfig as the base
+        # configuration for the Minis target; only the .example is committed.
+        run: |
+          cp src/ios/Configs/ProviderCustomization.xcconfig.example \
+             src/ios/Configs/ProviderCustomization.xcconfig
+
+      - name: Copy iSH headers (for the inert native offloads only)
+        # Same layout build_ish.sh used to produce in deps/include/ish —
+        # header files only, no compilation. NativeOffloads/*.m still
+        # #include "kernel/native_offload.h" (and its transitive includes),
+        # so these must exist or the app will not compile. The sandbox
+        # itself is gone; the offloads are never registered or run.
+        run: |
+          mkdir -p deps/include/ish/emu deps/include/ish/kernel \
+                   deps/include/ish/fs/proc deps/include/ish/util \
+                   deps/include/ish/platform deps/include/ish/asbestos \
+                   deps/include/ish/asbestos/guest-arm64/gadgets-aarch64
+          cp deps/ish/debug.h deps/ish/misc.h deps/ish/xX_main_Xx.h deps/include/ish/
+          cp deps/ish/emu/*.h deps/include/ish/emu/
+          cp deps/ish/kernel/*.h deps/include/ish/kernel/
+          cp deps/ish/fs/*.h deps/include/ish/fs/
+          cp deps/ish/fs/proc/*.h deps/include/ish/fs/proc/ 2>/dev/null || true
+          cp deps/ish/util/*.h deps/include/ish/util/ 2>/dev/null || true
+          cp deps/ish/platform/*.h deps/include/ish/platform/
+          cp deps/ish/asbestos/*.h deps/include/ish/asbestos/
+          cp deps/ish/asbestos/guest-arm64/gadgets-aarch64/*.h deps/include/ish/asbestos/guest-arm64/gadgets-aarch64/ 2>/dev/null || true
+          cp deps/ish/asbestos/gadgets-generic.h deps/include/ish/asbestos/ 2>/dev/null || true
+          test -f deps/include/ish/kernel/native_offload.h
+
+      - name: Cache rclone xcframework
+        id: cache-rclone
+        uses: actions/cache@v4
+        with:
+          path: deps/frameworks/Rclone.xcframework
+          key: ios-rclone-${{ hashFiles('deps/build_rclone_ios.sh', 'deps/rclone-mobile/backends/backends.go') }}
+
+      - name: Build rclone (Backup remote destinations; pure Go)
+        if: steps.cache-rclone.outputs.cache-hit != 'true'
+        run: |
+          ./deps/build_rclone_ios.sh
+
+      - name: Build Minis (unsigned)
+        run: |
+          xcodebuild -project src/ios/Minis.xcodeproj -scheme Minis \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -derivedDataPath build/derived \
+            CODE_SIGNING_ALLOWED=NO build
+
+      - name: Fake-sign with ldid (innermost first) and package tipa
+        run: |
+          set -eu
+          APP="build/derived/Build/Products/Release-iphoneos/Minis.app"
+          test -d "$APP" || { echo "Minis.app not found at $APP"; exit 1; }
+          # 1. Every .appex with its own entitlements (innermost first).
+          for appex in "$APP"/PlugIns/*.appex; do
+            name="$(basename "$appex" .appex)"
+            case "$name" in
+              MinisShare) ENT="src/ios/ShareExtension/ShareExtension.entitlements" ;;
+              AgentWidgetExtension) ENT="src/ios/AgentWidget/AgentWidget.entitlements" ;;
+              MinisFileProvider) ENT="src/ios/FileProvider/FileProvider.entitlements" ;;
+              MinisBroadcast) ENT="src/ios/PhoneControl/MinisBroadcast/MinisBroadcast.entitlements" ;;
+              *) echo "unknown appex: $name"; exit 1 ;;
+            esac
+            echo "ldid $name with $ENT"
+            ldid -S"$ENT" "$appex"
+          done
+          # 2. Embedded frameworks (plain ldid, no entitlements).
+          if [ -d "$APP/Frameworks" ]; then
+            for fw in "$APP"/Frameworks/*.framework; do
+              [ -e "$fw" ] || continue
+              echo "ldid $(basename "$fw")"
+              ldid -S "$fw"
+            done
+          fi
+          # 3. Main app with the full (public + private) entitlements.
+          ldid -Ssrc/ios/Minis.entitlements "$APP"
+          echo "--- entitlements check ---"
+          ldid -e "$APP" | grep -c "platform-application\|hid.client\|springboard" || true
+          ldid -e "$APP/PlugIns/MinisBroadcast.appex" | head -20
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" "$APP/Info.plist"
+          # 4. Package Payload/ into Minis.tipa.
+          rm -rf Payload Minis.tipa
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          ditto -c -k --sequesterRsrc --keepParent Payload Minis.tipa
+          ls -lh Minis.tipa
+          unzip -l Minis.tipa | head -30
+
+      - name: Upload Minis.tipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: Minis-tipa
+          path: Minis.tipa
+          if-no-files-found: error
+          retention-days: 30

@@ -88,6 +88,14 @@ extension AIChatViewModel {
     }
 
     func runAgentLoop(resumingAt existingMsgIdx: Int? = nil, committedBlocks: Int? = nil) async throws {
+        // [T-phone-control] Task start: reset the per-task phone state
+        // (auto-start budget, stuck detection). Task end (defer — runs on
+        // finish, error and cancel alike): if the task used the phone tools,
+        // close the screen recording by itself (v1.0.3 close flow: the
+        // extension ends itself, "好" is OCR-located and tapped, and the
+        // chat window is back in front); otherwise a no-op.
+        PhoneControl.beginTask()
+        defer { PhoneControl.endTask() }
         do {
             try await runAgentLoopCore(resumingAt: existingMsgIdx, committedBlocks: committedBlocks)
         } catch {

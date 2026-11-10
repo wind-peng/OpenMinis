@@ -103,10 +103,8 @@ extension AIChatViewModel {
             return FileToolResult(output: "Error writing memory: \(error.localizedDescription)", success: false)
         }
 
-        // Register in meta.db for iSH visibility
-        let linuxPath = "\(Self.minisMemoryLinuxDir)/\(fileName)"
-        ensureFakefsMetadata(for: linuxPath, isDirectory: false)
-
+        // [Sandbox removed] No fakefs registration: the daily log lives in
+        // the App Group container and the guest no longer exists.
         // Enqueue for iCloud v2 sync. Reuse fileName's stem (no second
         // Date() call) so the dateKey matches what was actually written
         // even across a midnight boundary.
@@ -176,7 +174,7 @@ extension AIChatViewModel {
             }
         }
 
-        let globalNote = globalEmpty ? "[GLOBAL.md is empty or does not exist. Use file_write to create it when the user asks to save global memory.]\n\n" : ""
+        let globalNote = globalEmpty ? "[GLOBAL.md is empty or does not exist. It is user-maintained — the user can edit it in Settings → Memory.]\n\n" : ""
 
         if filesToSearch.isEmpty {
             return FileToolResult(output: globalNote + "No memory files found.", success: true)

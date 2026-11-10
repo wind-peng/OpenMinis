@@ -372,16 +372,9 @@ extension ContentView {
         ToolbarItem(placement: .topBarTrailing) {
             if !isSelecting {
                 Menu {
-                    Button {
-                        showTerminal = true
-                    } label: {
-                        Label("Shell Terminal", systemImage: "terminal")
-                    }
-                    Button {
-                        activeToolSheet = .rootfsManagement
-                    } label: {
-                        Label("Rootfs Management", systemImage: "externaldrive")
-                    }
+                    // [Sandbox removed 2026-11-10] The "Shell Terminal" and
+                    // "Rootfs Management" entries are gone with the Linux
+                    // sandbox; the views still exist but are unreachable.
                     Divider()
                     Button {
                         activeToolSheet = .browser

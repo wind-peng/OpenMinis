@@ -351,10 +351,8 @@ private struct ChatTrailingMenu: View, Equatable {
                 Divider()
             }
 
-            Button { onOpenTerminal() } label: {
-                Label(AppLocalized("Open Terminal"), systemImage: "terminal")
-            }
-
+            // [Sandbox removed 2026-11-10] The "Open Terminal" menu item is
+            // gone with the Linux sandbox (onOpenTerminal is now unused).
             Button { onOpenBrowser() } label: {
                 Label(AppLocalized("Open Browser"), systemImage: "globe")
             }
@@ -680,8 +678,8 @@ struct ChatTrailingMenuButton: UIViewRepresentable {
         }
 
         groups.append(UIMenu(options: .displayInline, children: [
-            UIAction(title: AppLocalized("Open Terminal"),
-                     image: UIImage(systemName: "terminal")) { _ in coordinator.parent.onOpenTerminal() },
+            // [Sandbox removed 2026-11-10] The "Open Terminal" action is
+            // gone with the Linux sandbox (onOpenTerminal is now unused).
             UIAction(title: AppLocalized("Open Browser"),
                      image: UIImage(systemName: "globe")) { _ in coordinator.parent.onOpenBrowser() },
             UIAction(title: AppLocalized("Browse Chat Files"),

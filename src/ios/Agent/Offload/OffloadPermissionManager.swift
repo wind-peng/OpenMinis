@@ -130,6 +130,11 @@ final class OffloadPermissionManager: ObservableObject {
         .init(name: "apple-location", displayLabel: "Location", description: "Current GPS coordinates and location history", category: .privacy, showInSettings: true),
         .init(name: "apple-homekit", displayLabel: "HomeKit", description: "Smart home devices, rooms, and scenes", category: .privacy, showInSettings: true),
         .init(name: "apple-clipboard", displayLabel: "Clipboard", description: "Text and images copied to the clipboard", category: .privacy, showInSettings: true),
+        // [T-phone-control] Operating the phone screen touches other apps'
+        // content (what is on screen, what gets typed), so it is privacy
+        // and appears in Settings. First use defaults to Ask Once (see
+        // permissionLevel below) — an unset level must NOT mean bypass.
+        .init(name: "phone-act", displayLabel: "Phone Control", description: "Tap, swipe and type on the phone screen (operates other apps)", category: .privacy, showInSettings: true),
         // Media — no personal data, always bypass
         .init(name: "apple-speak", displayLabel: "Speak", description: "", category: .media, showInSettings: false),
         .init(name: "apple-speech", displayLabel: "Speech", description: "", category: .media, showInSettings: false),
@@ -163,6 +168,13 @@ final class OffloadPermissionManager: ObservableObject {
     }
 
     func permissionLevel(for command: String) -> OffloadPermissionLevel {
+        // [T-phone-control] "phone-act" defaults to Ask Once when the user
+        // has never set it: integer(forKey:) returns 0 (bypass) for an
+        // unset key, which would silently let the agent operate the phone
+        // with no confirmation on first use.
+        if command == "phone-act", defaults.object(forKey: defaultsKey(for: command)) == nil {
+            return .askOnce
+        }
         let raw = defaults.integer(forKey: defaultsKey(for: command))
         return OffloadPermissionLevel(rawValue: raw) ?? .bypass
     }

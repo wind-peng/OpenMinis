@@ -35,9 +35,7 @@
 		AA0838C32F3B941A00049557 /* RootfsManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0838BE2F3B941A00049557 /* RootfsManagementView.swift */; };
 		AA0838CC2F3B941A00049557 /* StorageManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0838CD2F3B941A00049557 /* StorageManagementView.swift */; };
 		AA0838D02F3B941A00049557 /* CurrentRoot.m in Sources */ = {isa = PBXBuildFile; fileRef = AA0838D12F3B941A00049557 /* CurrentRoot.m */; };
-		AA0838D22F3B941A00049557 /* RootfsPatch.bundle in Resources */ = {isa = PBXBuildFile; fileRef = AA0838D32F3B941A00049557 /* RootfsPatch.bundle */; };
 		AA0838FF2F3B941A00049557 /* MirrorSpeedTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0838FE2F3B941A00049557 /* MirrorSpeedTestView.swift */; };
-		AA26CCB72F31067900AECF2D /* alpine-rootfs.zip in Resources */ = {isa = PBXBuildFile; fileRef = AA26CCB62F31067900AECF2D /* alpine-rootfs.zip */; };
 		AA26CCB92F31070A00AECF2D /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = AA26CCB82F31070A00AECF2D /* libsqlite3.tbd */; };
 		AA26CCBA2F31080100AECF2D /* ISHKernel.m in Sources */ = {isa = PBXBuildFile; fileRef = AA26CCBB2F31080100AECF2D /* ISHKernel.m */; };
 		AA26CCBC2F31080100AECF2D /* ISHTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA26CCBD2F31080100AECF2D /* ISHTerminalView.swift */; };
@@ -48,20 +46,6 @@
 		AA71B0222F44BEB200A28A5E /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA71B0212F44BEB200A28A5E /* Launch Screen.storyboard */; };
 		AA9C2BF92F65996900F41633 /* SwiftMath in Frameworks */ = {isa = PBXBuildFile; productRef = E5X000021 /* SwiftMath */; };
 		AADDA9E12F6ECCF400B66649 /* ThumbnailCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = AADDA9E02F6ECCF400B66649 /* ThumbnailCache.swift */; };
-		AAF00F012F50A00000049557 /* FFmpeg.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAF00F002F50A00000049557 /* FFmpeg.framework */; };
-		AAF00F022F50A00000049557 /* FFmpeg.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AAF00F002F50A00000049557 /* FFmpeg.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		AAF10F012F50A00000049557 /* libavcodec.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAF10F002F50A00000049557 /* libavcodec.framework */; };
-		AAF10F022F50A00000049557 /* libavcodec.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AAF10F002F50A00000049557 /* libavcodec.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		AAF10F032F50A00000049557 /* libavformat.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAF10F042F50A00000049557 /* libavformat.framework */; };
-		AAF10F052F50A00000049557 /* libavformat.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AAF10F042F50A00000049557 /* libavformat.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		AAF10F062F50A00000049557 /* libavutil.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAF10F072F50A00000049557 /* libavutil.framework */; };
-		AAF10F082F50A00000049557 /* libavutil.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AAF10F072F50A00000049557 /* libavutil.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		AAF10F092F50A00000049557 /* libavfilter.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAF10F0A2F50A00000049557 /* libavfilter.framework */; };
-		AAF10F0B2F50A00000049557 /* libavfilter.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AAF10F0A2F50A00000049557 /* libavfilter.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		AAF10F0C2F50A00000049557 /* libswresample.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAF10F0D2F50A00000049557 /* libswresample.framework */; };
-		AAF10F0E2F50A00000049557 /* libswresample.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AAF10F0D2F50A00000049557 /* libswresample.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		AAF10F0F2F50A00000049557 /* libswscale.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAF10F102F50A00000049557 /* libswscale.framework */; };
-		AAF10F112F50A00000049557 /* libswscale.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AAF10F102F50A00000049557 /* libswscale.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		AC0000202 /* ProviderCustomizationGenerated.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0000201 /* ProviderCustomizationGenerated.swift */; };
 		B02B7ADBAB47BDB33F664A21 /* VoiceProvider+Vendors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BB45FC87D39AE9AB4495BE9 /* VoiceProvider+Vendors.swift */; };
 		BB1000100F700000000000AA /* ContextPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB1000110F700000000000AA /* ContextPolicy.swift */; };
@@ -147,8 +131,6 @@
 		E59000001 /* AgentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E59000011 /* AgentProvider.swift */; };
 		E59000002 /* AnthropicAgentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E59000012 /* AnthropicAgentProvider.swift */; };
 		E59000003 /* GeminiAgentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E59000013 /* GeminiAgentProvider.swift */; };
-		E5A000001 /* default_mount in Resources */ = {isa = PBXBuildFile; fileRef = E5A000011 /* default_mount */; };
-		E5A000A01 /* AOJITRestore in Resources */ = {isa = PBXBuildFile; fileRef = E5A000A11 /* AOJITRestore */; };
 		E5A0J1T0B1F0000000000001 /* AOJITSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5A0J1T0F1E0000000000001 /* AOJITSettingsView.swift */; };
 		E5ACB0001 /* AgentCallback.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5ACB0011 /* AgentCallback.swift */; };
 		E5ACB0002 /* AgentCallbackCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5ACB0012 /* AgentCallbackCellView.swift */; };
@@ -266,6 +248,10 @@
 		E5E000007 /* SharedContainerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5E000017 /* SharedContainerStore.swift */; };
 		E5E000008 /* ShareCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5E000019 /* ShareCoordinator.swift */; };
 		E5E000009 /* MinisShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E5E000010 /* MinisShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		53A403F847A1244D50ABF9D9 /* PhoneControlBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 8464E653039D005DCBAE3018 /* PhoneControlBridge.m */; };
+		0B708988C483C0D485DF069A /* PhoneControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3225C2ACE30386901658E0D9 /* PhoneControl.swift */; };
+		B83061655C6F6F4E2C454501 /* SampleHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = 876068368659FFB3D447D61A /* SampleHandler.m */; };
+		BFD94770808682F6C946A279 /* MinisBroadcast.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1C8C1A055D71F73E3D98A98C /* MinisBroadcast.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		E5E00000A /* MainInterface.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E5E00001A /* MainInterface.storyboard */; };
 		E5E0000A1 /* ExternalFileImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5E0000A2 /* ExternalFileImporter.swift */; };
 		E5F000001 /* ISHExecutionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F000011 /* ISHExecutionCoordinator.swift */; };
@@ -636,6 +622,13 @@
 			remoteGlobalIDString = E5E000040;
 			remoteInfo = MinisShare;
 		};
+		9C05BB633CF88CAF2EBC7DCC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E51000060 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BABB10450974394BA4A60B0E;
+			remoteInfo = MinisBroadcast;
+		};
 		E5FP00081 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = E51000060 /* Project object */;
@@ -660,29 +653,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		AA26BD2D2F2E659300AECF2D /* Copy Alpine Rootfs */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 7;
-			files = (
-			);
-			name = "Copy Alpine Rootfs";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		AAF00F032F50A00000049557 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				AAF00F022F50A00000049557 /* FFmpeg.framework in Embed Frameworks */,
-				AAF10F022F50A00000049557 /* libavcodec.framework in Embed Frameworks */,
-				AAF10F052F50A00000049557 /* libavformat.framework in Embed Frameworks */,
-				AAF10F082F50A00000049557 /* libavutil.framework in Embed Frameworks */,
-				AAF10F0B2F50A00000049557 /* libavfilter.framework in Embed Frameworks */,
-				AAF10F0E2F50A00000049557 /* libswresample.framework in Embed Frameworks */,
-				AAF10F112F50A00000049557 /* libswscale.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -696,6 +672,7 @@
 				E5E000009 /* MinisShare.appex in Embed Foundation Extensions */,
 				E5H000009 /* AgentWidgetExtension.appex in Embed Foundation Extensions */,
 				E5FP00009 /* MinisFileProvider.appex in Embed Foundation Extensions */,
+				BFD94770808682F6C946A279 /* MinisBroadcast.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1034,6 +1011,14 @@
 		E5DRC0020 /* DebugRPCConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugRPCConfig.swift; sourceTree = "<group>"; };
 		E5DVO0011 /* DebugViewOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugViewOverlay.swift; sourceTree = "<group>"; };
 		E5E000010 /* MinisShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MinisShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		C2A9B7F1A66606CD83CFC57F /* PhoneControlBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PhoneControlBridge.h; sourceTree = "<group>"; };
+		8464E653039D005DCBAE3018 /* PhoneControlBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = PhoneControlBridge.m; sourceTree = "<group>"; };
+		3225C2ACE30386901658E0D9 /* PhoneControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneControl.swift; sourceTree = "<group>"; };
+		0BDB2E14118BE449AE1D671C /* PhoneControlShared.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PhoneControlShared.h; sourceTree = "<group>"; };
+		876068368659FFB3D447D61A /* SampleHandler.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SampleHandler.m; sourceTree = "<group>"; };
+		01FC2EE138CEB5D653CF413E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		83EBA0D6EC64FA423D6CD134 /* MinisBroadcast.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MinisBroadcast.entitlements; sourceTree = "<group>"; };
+		1C8C1A055D71F73E3D98A98C /* MinisBroadcast.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MinisBroadcast.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E5E000011 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		E5E000013 /* ShareViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewModel.swift; sourceTree = "<group>"; };
 		E5E000014 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -1485,14 +1470,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA9C2BF92F65996900F41633 /* SwiftMath in Frameworks */,
-				AAF00F012F50A00000049557 /* FFmpeg.framework in Frameworks */,
 				RCL000010 /* Rclone.xcframework in Frameworks */,
-				AAF10F012F50A00000049557 /* libavcodec.framework in Frameworks */,
-				AAF10F032F50A00000049557 /* libavformat.framework in Frameworks */,
-				AAF10F062F50A00000049557 /* libavutil.framework in Frameworks */,
-				AAF10F092F50A00000049557 /* libavfilter.framework in Frameworks */,
-				AAF10F0C2F50A00000049557 /* libswresample.framework in Frameworks */,
-				AAF10F0F2F50A00000049557 /* libswscale.framework in Frameworks */,
 				AA26CCB92F31070A00AECF2D /* libsqlite3.tbd in Frameworks */,
 				AA26CCC32F31090100AECF2D /* libresolv.tbd in Frameworks */,
 				AA26CCC12F31090000AECF2D /* SystemConfiguration.framework in Frameworks */,
@@ -1721,6 +1699,7 @@
 				E51000033 /* Preview Content */,
 				AA71B0212F44BEB200A28A5E /* Launch Screen.storyboard */,
 				AA26BD002F2E5F0A00AECF2D /* MinisApp-Bridging-Header.h */,
+				DDACA5962F992448FE55BF73 /* PhoneControl */,
 			);
 			name = Minis;
 			sourceTree = "<group>";
@@ -1732,6 +1711,7 @@
 				E5E000010 /* MinisShare.appex */,
 				E5H000010 /* AgentWidgetExtension.appex */,
 				E5FP00010 /* MinisFileProvider.appex */,
+				1C8C1A055D71F73E3D98A98C /* MinisBroadcast.appex */,
 				AA8A568B2F6FBB7A00A3E54E /* MinisUITests.xctest */,
 				BB1000010F700000000000AA /* MinisTests.xctest */,
 				E5TH00010 /* MinisTestHost.app */,
@@ -2027,6 +2007,28 @@
 				E5E000015 /* ShareExtension.entitlements */,
 			);
 			path = ShareExtension;
+			sourceTree = "<group>";
+		};
+		DDACA5962F992448FE55BF73 /* PhoneControl */ = {
+			isa = PBXGroup;
+			children = (
+				C2A9B7F1A66606CD83CFC57F /* PhoneControlBridge.h */,
+				8464E653039D005DCBAE3018 /* PhoneControlBridge.m */,
+				3225C2ACE30386901658E0D9 /* PhoneControl.swift */,
+				0BDB2E14118BE449AE1D671C /* PhoneControlShared.h */,
+				1FE12B8AE75BB3C6E1828D4D /* MinisBroadcast */,
+			);
+			path = PhoneControl;
+			sourceTree = "<group>";
+		};
+		1FE12B8AE75BB3C6E1828D4D /* MinisBroadcast */ = {
+			isa = PBXGroup;
+			children = (
+				876068368659FFB3D447D61A /* SampleHandler.m */,
+				01FC2EE138CEB5D653CF413E /* Info.plist */,
+				83EBA0D6EC64FA423D6CD134 /* MinisBroadcast.entitlements */,
+			);
+			path = MinisBroadcast;
 			sourceTree = "<group>";
 		};
 		E5E000031 /* Shared */ = {
@@ -2763,7 +2765,6 @@
 				E51000041 /* Sources */,
 				E51000020 /* Frameworks */,
 				E51000042 /* Resources */,
-				AA26BD2D2F2E659300AECF2D /* Copy Alpine Rootfs */,
 				AAF00F032F50A00000049557 /* Embed Frameworks */,
 				E5E000060 /* Embed Foundation Extensions */,
 				E54000AE0 /* Strip Third-Party VAD Framework Symbols */,
@@ -2774,6 +2775,7 @@
 				E5E000080 /* PBXTargetDependency */,
 				E5H000080 /* PBXTargetDependency */,
 				E5FP00080 /* PBXTargetDependency */,
+				CF4F7896D04038BC54F323A2 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				AA0838CB2F3CA8A900049557 /* Terminal */,
@@ -2808,6 +2810,22 @@
 			name = MinisShare;
 			productName = MinisShare;
 			productReference = E5E000010 /* MinisShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		BABB10450974394BA4A60B0E /* MinisBroadcast */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4025B3508FCB7320D026CA77 /* Build configuration list for PBXNativeTarget "MinisBroadcast" */;
+			buildPhases = (
+				797E3DA67EBB6779FDD47AD9 /* Sources */,
+				4B3BE8317CEFC26B5BEEDFDC /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MinisBroadcast;
+			productName = MinisBroadcast;
+			productReference = 1C8C1A055D71F73E3D98A98C /* MinisBroadcast.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 		E5FP00040 /* MinisFileProvider */ = {
@@ -2885,6 +2903,9 @@
 					E5FP00040 = {
 						CreatedOnToolsVersion = 15.0;
 					};
+					BABB10450974394BA4A60B0E = {
+						CreatedOnToolsVersion = 15.0;
+					};
 					E5H000040 = {
 						CreatedOnToolsVersion = 15.0;
 					};
@@ -2930,6 +2951,7 @@
 				E5E000040 /* MinisShare */,
 				E5H000040 /* AgentWidgetExtension */,
 				E5FP00040 /* MinisFileProvider */,
+				BABB10450974394BA4A60B0E /* MinisBroadcast */,
 				AA8A568A2F6FBB7A00A3E54E /* MinisUITests */,
 				BB1000070F700000000000AA /* MinisTests */,
 				E5TH00070 /* MinisTestHost */,
@@ -2960,12 +2982,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				E51000004 /* Preview Assets.xcassets in Resources */,
-				AA26CCB72F31067900AECF2D /* alpine-rootfs.zip in Resources */,
 				E5BSH0004 /* bashism_rules.json in Resources */,
 				E5BSH0005 /* bashism_test_vectors.json in Resources */,
-				AA0838D22F3B941A00049557 /* RootfsPatch.bundle in Resources */,
-				E5A000001 /* default_mount in Resources */,
-				E5A000A01 /* AOJITRestore in Resources */,
 				E5U000002 /* KaTeX in Resources */,
 				E5V000002 /* AlternateIcons in Resources */,
 				AA71B0222F44BEB200A28A5E /* Launch Screen.storyboard in Resources */,
@@ -2989,6 +3007,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				E5E00000A /* MainInterface.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4B3BE8317CEFC26B5BEEDFDC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3620,6 +3645,8 @@
 				8B886DA8A270E8FB58A9A1FA /* SpeechPlayerControl.swift in Sources */,
 				7A49962E84F115865D41B933 /* AudioSessionCoordinator.swift in Sources */,
 				C0B1AF9A75C90C3C178A8804 /* VoiceTextSanitizer.swift in Sources */,
+				53A403F847A1244D50ABF9D9 /* PhoneControlBridge.m in Sources */,
+				0B708988C483C0D485DF069A /* PhoneControl.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3631,6 +3658,14 @@
 				E5E000003 /* ShareViewModel.swift in Sources */,
 				E5E000004 /* PendingShare.swift in Sources */,
 				E5E000005 /* SharedContainerStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		797E3DA67EBB6779FDD47AD9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B83061655C6F6F4E2C454501 /* SampleHandler.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3677,6 +3712,11 @@
 			isa = PBXTargetDependency;
 			target = E5E000040 /* MinisShare */;
 			targetProxy = E5E000081 /* PBXContainerItemProxy */;
+		};
+		CF4F7896D04038BC54F323A2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BABB10450974394BA4A60B0E /* MinisBroadcast */;
+			targetProxy = 9C05BB633CF88CAF2EBC7DCC /* PBXContainerItemProxy */;
 		};
 		E5FP00080 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -4040,13 +4080,6 @@
 				"ISH_LIBS_DIR[sdk=iphonesimulator*]" = "$(SRCROOT)/../../deps/libs/iphonesimulator";
 				LIBRARY_SEARCH_PATHS = "$(ISH_LIBS_DIR)";
 				MARKETING_VERSION = 1.15;
-				OTHER_LDFLAGS = (
-					"-lish_emu",
-					"-lish",
-					"-lfakefs",
-					"-force_load",
-					"$(ISH_LIBS_DIR)/libish_aot.a",
-				);
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.openminis.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -4099,13 +4132,6 @@
 				"ISH_LIBS_DIR[sdk=iphonesimulator*]" = "$(SRCROOT)/../../deps/libs/iphonesimulator";
 				LIBRARY_SEARCH_PATHS = "$(ISH_LIBS_DIR)";
 				MARKETING_VERSION = 1.15;
-				OTHER_LDFLAGS = (
-					"-lish_emu",
-					"-lish",
-					"-lfakefs",
-					"-force_load",
-					"$(ISH_LIBS_DIR)/libish_aot.a",
-				);
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = com.openminis.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -4171,6 +4197,60 @@
 			name = Release;
 		};
 		E5FP00070 /* Debug */ = {
+		818C25B2C5C915A9CA95EDFC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PhoneControl/MinisBroadcast/MinisBroadcast.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PhoneControl/MinisBroadcast/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Minis;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.15;
+				PRODUCT_BUNDLE_IDENTIFIER = com.openminis.app.MinisBroadcast;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1A80C8574AFBFB0EFB936CCD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = PhoneControl/MinisBroadcast/MinisBroadcast.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PhoneControl/MinisBroadcast/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Minis;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.15;
+				PRODUCT_BUNDLE_IDENTIFIER = com.openminis.app.MinisBroadcast;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = FileProvider/FileProvider.entitlements;
@@ -4377,6 +4457,15 @@
 			defaultConfigurationName = Release;
 		};
 		E5FP00050 /* Build configuration list for PBXNativeTarget "MinisFileProvider" */ = {
+		4025B3508FCB7320D026CA77 /* Build configuration list for PBXNativeTarget "MinisBroadcast" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				818C25B2C5C915A9CA95EDFC /* Debug */,
+				1A80C8574AFBFB0EFB936CCD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E5FP00070 /* Debug */,

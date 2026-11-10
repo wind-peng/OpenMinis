@@ -432,298 +432,6 @@ extension AIChatViewModel {
 
         do {
         switch tu.name {
-        case "shell_execute":
-            let (command, timeout, delay) = parseToolInput(from: argsJson)
-
-            if command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                ctLogger.warning("[ToolArgsProbe] shell_execute called with empty command — argsJson=<<<\(argsJson)>>>")
-                toolOutput = "Error: Missing required 'command' parameter. Please call shell_execute again with a non-empty `command` field."
-                toolSuccess = false
-                if msgIdx < messages.count, blockIdx < messages[msgIdx].blocks.count {
-                    messages[msgIdx].blocks[blockIdx].content = toolOutput
-                }
-                break
-            }
-
-            // Offload permission check.
-            ctLogger.info("[OffloadPerm] shell command: \(command)")
-            if let offloadCmd = OffloadPermissionManager.extractOffloadCommand(from: command) {
-                ctLogger.info("[OffloadPerm] matched offload: \(offloadCmd), level: \(OffloadPermissionManager.shared.permissionLevel(for: offloadCmd).rawValue)")
-                let permResult = await OffloadPermissionManager.shared.checkPermission(
-                    for: offloadCmd, sessionId: self.sessionId, fullCommand: command
-                )
-                if case .denied(let msg) = permResult {
-                    ctLogger.info("[OffloadPerm] DENIED: \(offloadCmd)")
-                    toolOutput = msg
-                    toolSuccess = false
-                    if msgIdx < messages.count, blockIdx < messages[msgIdx].blocks.count {
-                        messages[msgIdx].blocks[blockIdx].content = msg
-                    }
-                    break
-                }
-                ctLogger.info("[OffloadPerm] ALLOWED: \(offloadCmd)")
-            } else {
-                ctLogger.info("[OffloadPerm] no offload match for first token")
-            }
-
-            // Delay execution.
-            if delay > 0 {
-                toolDelayWaitCount += 1
-                defer { toolDelayWaitCount -= 1 }
-                // [T-delay-stop-latency] The stop button during the countdown
-                // sets `commandCancelledByUser` (stopCurrentCommand guards on
-                // `toolDelayWaitActive`), but the old loop only re-checked that
-                // flag once per whole second and then slept a FULL second — a
-                // tap landing just after a check waited up to ~1s before the
-                // next check, which read as "stop does nothing" during the
-                // delay phase (the user report). Poll on a short tick instead so
-                // both the button flag AND Task cancellation are honored within
-                // ~100ms, while the visible countdown still refreshes once per
-                // whole second.
-                let totalSeconds = Int(delay)
-                let tickNanos: UInt64 = 100_000_000 // 100ms
-                let ticksPerSecond = 10
-                var lastShownRemaining = -1
-                for tick in 0..<(totalSeconds * ticksPerSecond) {
-                    if commandCancelledByUser || Task.isCancelled {
-                        throw CancellationError()
-                    }
-                    let remaining = totalSeconds - (tick / ticksPerSecond)
-                    if remaining != lastShownRemaining,
-                       msgIdx < self.messages.count, blockIdx < self.messages[msgIdx].blocks.count {
-                        lastShownRemaining = remaining
-                        let mm = remaining / 60
-                        let ss = remaining % 60
-                        let countdown = mm > 0 ? String(format: "%d:%02d", mm, ss) : "\(ss)s"
-                        self.messages[msgIdx].blocks[blockIdx].content = "⏳ Waiting \(countdown) before executing..."
-                        self.scrollToBottomSignal.send()
-                    }
-                    try await Task.sleep(nanoseconds: tickNanos)
-                }
-                // Final cancellation check after the last tick so a tap in the
-                // final 100ms window still aborts before we launch the process.
-                if commandCancelledByUser || Task.isCancelled {
-                    throw CancellationError()
-                }
-            }
-
-            // [T-aojit-shell-stats] Counters before the command; the [AOJIT]
-            // log line after it reports what this command compiled and how
-            // much of it came from AOT images.
-            let aojitToken = await AOJITShellStats.begin()
-            let preSnapshot = snapshotMinisFiles()
-            let result: CommandResult
-            do {
-                var lineBuffer: [String] = []
-                var lastFlush = Date.distantPast
-                let kMaxStreamingDisplayChars = 30_000
-                // [T-ios-flushlines-mainactor] Hop to the main actor before
-                // touching `messages`.
-                //
-                // This closure runs on ISHShellExecutor's reader queue (it is
-                // `executeCommand`'s per-line callback), but `messages` is
-                // @Published on a @MainActor view model and
-                // `scrollToBottomSignal` drives UI. Writing both from a
-                // background queue is a data race on SwiftUI state — the kind
-                // that corrupts the view graph rather than failing cleanly.
-                //
-                // The buffer drain stays OUTSIDE the hop and remains
-                // synchronous: `lineBuffer` and `lastFlush` belong to the
-                // reader queue, and deferring their reset would let the next
-                // callback re-read lines this flush already claimed. So the
-                // lines are taken here, and only the UI write is hopped.
-                //
-                // The bounds check moves inside the hop with the access it
-                // guards — checking on the reader queue and using the value on
-                // the main actor would be checking a snapshot that could have
-                // changed by the time it is used.
-                let flushLines: () -> Void = { [weak self] in
-                    guard let self, !lineBuffer.isEmpty else { return }
-                    let joined = lineBuffer.joined(separator: "\n")
-                    lineBuffer.removeAll()
-                    lastFlush = Date()
-                    Task { @MainActor in
-                        guard msgIdx < self.messages.count,
-                              blockIdx < self.messages[msgIdx].blocks.count else { return }
-                        let current = self.messages[msgIdx].blocks[blockIdx].content
-                        var newContent: String
-                        if current.hasSuffix("Executing...") {
-                            newContent = joined
-                        } else {
-                            newContent = current + "\n" + joined
-                        }
-                        if newContent.count > kMaxStreamingDisplayChars {
-                            newContent = "…[output truncated]…\n" + String(newContent.suffix(kMaxStreamingDisplayChars))
-                        }
-                        self.messages[msgIdx].blocks[blockIdx].content = newContent
-                        self.scrollToBottomSignal.send()
-                    }
-                }
-                // [T-tool-exec-breadcrumb] Durable, written BEFORE the command
-                // launches. `[ToolLifecycle] COMPLETED` only lands after a tool
-                // returns, so a process killed mid-execution (watchdog SIGKILL,
-                // Jetsam, SIGABRT) left no record of what was running. This line
-                // is on disk (O_SYNC) before executeCommand is entered, so the
-                // last breadcrumb after a kill names the command that was live.
-                // Command is truncated — enough to identify it, not enough to
-                // bloat the file with a large heredoc.
-                #if DEBUG
-                CrashReporter.writeToolBreadcrumb(
-                    "[ToolExec] STARTING shell_execute id=\(tu.id.prefix(20)) sid=\(sessionId?.prefix(8) ?? "nil") timeout=\(timeout)s command=\"\(command.prefix(500))\""
-                )
-                #endif
-                result = try await executeCommand(command, timeout: timeout) { [weak self] line in
-                    guard let self else { return }
-                    let (cleanedLine, capturedURLs) = MinisURLMarker.extract(from: line)
-                    if !capturedURLs.isEmpty {
-                        Task { @MainActor in
-                            for raw in capturedURLs {
-                                if let u = URL(string: raw),
-                                   MinisOpenURLBroker.isSupportedScheme(u.scheme) {
-                                    MinisOpenURLBroker.shared.offer(u)
-                                }
-                            }
-                        }
-                    }
-                    if cleanedLine.isEmpty && !line.isEmpty { return }
-                    lineBuffer.append(cleanedLine)
-                    if Date().timeIntervalSince(lastFlush) >= 0.2 {
-                        flushLines()
-                    }
-                }
-                flushLines()
-            } catch {
-                result = CommandResult(output: "Error: \(error.localizedDescription)", exitCode: -1)
-            }
-            await AOJITShellStats.end(aojitToken, command: command, exitCode: result.exitCode)
-            // [T-tool-exec-breadcrumb] Pair for the STARTING line above. The
-            // existing `[ToolLifecycle] COMPLETED` covers every tool, but it
-            // travels the droppable NSLog pipe; this one shares the STARTING
-            // line's durable file so a STARTING with no matching FINISHED is
-            // unambiguous evidence that the process died inside this command.
-            #if DEBUG
-            CrashReporter.writeToolBreadcrumb(
-                "[ToolExec] FINISHED shell_execute id=\(tu.id.prefix(20)) exit=\(result.exitCode)"
-            )
-            #endif
-            if msgIdx < messages.count, blockIdx < messages[msgIdx].blocks.count {
-                let existingContent = messages[msgIdx].blocks[blockIdx].content
-                let hasStreamedContent = !existingContent.isEmpty
-                    && !existingContent.hasSuffix("Executing...")
-                if !hasStreamedContent {
-                    let (cleaned, capturedURLs) = MinisURLMarker.extract(from: result.output)
-                    for raw in capturedURLs {
-                        if let u = URL(string: raw),
-                           MinisOpenURLBroker.isSupportedScheme(u.scheme) {
-                            MinisOpenURLBroker.shared.offer(u)
-                        }
-                    }
-                    let resultTrimmed = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !resultTrimmed.isEmpty {
-                        messages[msgIdx].blocks[blockIdx].content = resultTrimmed
-                    }
-                }
-            }
-            if commandCancelledByUser {
-                // NOTE: don't reset commandCancelledByUser here under
-                // concurrent execution — sibling shell tasks still need
-                // the signal to abort their own delay loops. The outer
-                // dispatcher resets it once per batch.
-                toolOutput = "<system-reminder>The user cancelled this operation. The returned result may be incomplete.</system-reminder>\n" + result.output
-                cancelledHere = true
-            } else {
-                toolOutput = result.output
-            }
-            toolSuccess = result.exitCode == 0
-
-            // Scan for new/modified files under /var/minis/
-            let postSnapshot = snapshotMinisFiles()
-            let newOrModified = postSnapshot.filter { key, date in
-                preSnapshot[key] == nil || preSnapshot[key]! < date
-            }
-            if !newOrModified.isEmpty {
-                for (path, _) in newOrModified {
-                    var isDir: ObjCBool = false
-                    if let hostURL = resolveHostPath(path) {
-                        FileManager.default.fileExists(atPath: hostURL.path, isDirectory: &isDir)
-                    }
-                    ensureParentDirsInMetaDB(for: path)
-                    ensureFakefsMetadata(for: path, isDirectory: isDir.boolValue)
-                }
-                toolOutput += "\n\n[minis] New/modified files:"
-                for path in newOrModified.keys.sorted() {
-                    if let url = linuxPathToMinisURL(path) {
-                        toolOutput += "\n  \(url)"
-                    }
-                }
-            }
-
-            let (redactedOut, redactHits) = EnvVarRedactor.redactIfEnabled(toolOutput)
-            if redactHits > 0 {
-                ctLogger.info("[EnvVarRedact] shell_execute: masked \(redactHits) env-var value(s) in tool result")
-            }
-            toolOutput = redactedOut
-
-        case "file_read":
-            let fileResult: FileToolResult
-            do {
-                fileResult = try await executeFileRead(from: argsJson)
-            } catch {
-                fileResult = FileToolResult(output: "Error: \(error.localizedDescription)", success: false)
-            }
-            if msgIdx < messages.count, blockIdx < messages[msgIdx].blocks.count {
-                messages[msgIdx].blocks[blockIdx].content = fileResult.output
-            }
-            toolOutput = fileResult.output
-            toolSuccess = fileResult.success
-            if fileResult.success,
-               let data = argsJson.data(using: .utf8),
-               let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let readPath = dict["path"] as? String,
-               let skillId = SkillStore.shared.skillIdFromPath(readPath) {
-                await MainActor.run { SkillStore.shared.recordSkillUse(skillId) }
-            }
-
-        case "file_write":
-            let fileResult: FileToolResult
-            do {
-                fileResult = try await executeFileWrite(from: argsJson)
-            } catch {
-                fileResult = FileToolResult(output: "Error: \(error.localizedDescription)", success: false)
-            }
-            if msgIdx < messages.count, blockIdx < messages[msgIdx].blocks.count {
-                messages[msgIdx].blocks[blockIdx].content = fileResult.output
-            }
-            toolOutput = fileResult.output
-            toolSuccess = fileResult.success
-            if fileResult.success,
-               let data = argsJson.data(using: .utf8),
-               let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let writtenPath = dict["path"] as? String,
-               writtenPath.contains("/skills/") && writtenPath.hasSuffix("SKILL.md") {
-                await MainActor.run { SkillStore.shared.reload() }
-            }
-
-        case "file_edit":
-            let fileResult: FileToolResult
-            do {
-                fileResult = try await executeFileEdit(from: argsJson)
-            } catch {
-                fileResult = FileToolResult(output: "Error: \(error.localizedDescription)", success: false)
-            }
-            if msgIdx < messages.count, blockIdx < messages[msgIdx].blocks.count {
-                messages[msgIdx].blocks[blockIdx].content = fileResult.output
-            }
-            toolOutput = fileResult.output
-            toolSuccess = fileResult.success
-            if fileResult.success,
-               let data = argsJson.data(using: .utf8),
-               let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let editedPath = dict["path"] as? String,
-               editedPath.contains("/skills/") && editedPath.hasSuffix("SKILL.md") {
-                await MainActor.run { SkillStore.shared.reload() }
-            }
-
         case "browser_use":
             // [T-tools-master-switch] Not in the schema when off; a request
             // built before the switch flipped can still name it.
@@ -1039,7 +747,175 @@ extension AIChatViewModel {
                 }
                 toolOutput = statusResult.output
                 toolSuccess = statusResult.success
-            default:
+            case "phone_screen":
+            // [T-phone-control] Eyes: one screenshot + local OCR. First call
+            // of the task with the broadcast off auto-starts the recording
+            // (blind-tap "开始直播", then back to the Minis UI); later calls
+            // in the same task do not re-attempt.
+            guard AgentToolSwitch.isToolEnabled(tu.name) else {
+                toolOutput = Self.toolsDisabledMessage
+                toolSuccess = false
+                break
+            }
+            PhoneControl.markPhoneUsed()
+            var screenNotes: [String] = []
+            let screenAutoStart = PhoneControl.ensureBroadcastIfNeeded()
+            if screenAutoStart.attempted {
+                screenNotes.append(screenAutoStart.ok
+                    ? "Screen recording was off — started it automatically."
+                    : "Could not start screen recording automatically (\(screenAutoStart.note ?? "unknown reason")). Ask the user to start it from Control Center (long-press Screen Recording → pick Minis → Start Broadcast).")
+            }
+            let (capture, captureErr) = PhoneControl.capture()
+            guard let capture else {
+                toolOutput = "Error: could not capture the phone screen: \(captureErr ?? "unknown error"). "
+                    + "If screen recording is off, ask the user to start it from Control Center (long-press Screen Recording → pick Minis → Start Broadcast), then call phone_screen again."
+                toolSuccess = false
+                if msgIdx < messages.count, blockIdx < messages[msgIdx].blocks.count {
+                    messages[msgIdx].blocks[blockIdx].content = toolOutput
+                }
+                break
+            }
+            if !PhoneControl.broadcastAlive {
+                screenNotes.append("Screen recording is off, so this screenshot came from the fallback path (\(capture.method)); it may be less reliable than broadcast frames.")
+            }
+            let screenStuck = PhoneControl.noteFrameSignature(capture.signature)
+            var screenText = "Screen (780x1688, red grid + coordinate numbers):\n\(capture.ocrText)"
+            if let danger = PhoneControl.dangerHit(in: capture.ocrText) {
+                screenText += "\nWARNING: the screen shows '\(danger)' — a payment/password step. STOP the task and hand it to the user; do not tap anything."
+            }
+            if screenStuck >= 4 {
+                screenText += "\nNOTE: the screen has not changed for \(screenStuck) captures in a row — stop the task and report instead of repeating the same action."
+            }
+            if !screenNotes.isEmpty {
+                screenText += "\n" + screenNotes.joined(separator: "\n")
+            }
+            let screenShotPath = Self.writePhoneScreenshotCopy(capture.jpeg, sessionId: sessionId)
+            if msgIdx < messages.count, blockIdx < messages[msgIdx].blocks.count {
+                messages[msgIdx].blocks[blockIdx].content = screenText
+                messages[msgIdx].blocks[blockIdx].imageFilePath = screenShotPath
+            }
+            toolOutput = screenText
+            toolSuccess = true
+            toolImageData = capture.jpeg
+            toolImageMimeType = "image/jpeg"
+            toolImageLinuxPath = nil
+
+        case "phone_act":
+            // [T-phone-control] Hands: one action on the phone screen, then
+            // always a fresh screenshot. First call of the task with the
+            // broadcast off auto-starts the recording (same as phone_screen).
+            guard AgentToolSwitch.isToolEnabled(tu.name) else {
+                toolOutput = Self.toolsDisabledMessage
+                toolSuccess = false
+                break
+            }
+            PhoneControl.markPhoneUsed()
+            let phoneAction = (toolArgs["action"] as? String ?? "").lowercased()
+            guard !phoneAction.isEmpty else {
+                toolOutput = "Error: Missing required 'action' parameter. Use one of: tap, long_press, swipe, input_text, open_app, press_home, key, wait, stop_cast."
+                toolSuccess = false
+                break
+            }
+            // First use of phone_act in a session asks the user to confirm
+            // (OffloadPermissionManager "phone-act", default Ask Once).
+            // stop_cast only closes the recording, so it needs no confirm.
+            if phoneAction != "stop_cast" {
+                let permResult = await OffloadPermissionManager.shared.checkPermission(
+                    for: "phone-act", sessionId: self.sessionId, fullCommand: "phone_act \(phoneAction)"
+                )
+                if case .denied(let msg) = permResult {
+                    toolOutput = msg
+                    toolSuccess = false
+                    if msgIdx < messages.count, blockIdx < messages[msgIdx].blocks.count {
+                        messages[msgIdx].blocks[blockIdx].content = msg
+                    }
+                    break
+                }
+            }
+            var actNotes: [String] = []
+            let actAutoStart = PhoneControl.ensureBroadcastIfNeeded()
+            if actAutoStart.attempted {
+                actNotes.append(actAutoStart.ok
+                    ? "Screen recording was off — started it automatically."
+                    : "Could not start screen recording automatically (\(actAutoStart.note ?? "unknown reason")). Continuing with the fallback screenshot path; ask the user to start it from Control Center if taps cannot be verified.")
+            }
+            if phoneAction == "stop_cast" {
+                let (stopOK, stopNote) = PhoneControl.perform(action: phoneAction, params: [:])
+                toolOutput = stopNote + " The task's phone work is done; the recording closes itself and the chat window is back in front."
+                toolSuccess = stopOK
+                if msgIdx < messages.count, blockIdx < messages[msgIdx].blocks.count {
+                    messages[msgIdx].blocks[blockIdx].content = toolOutput
+                }
+                break
+            }
+            // See the screen first: fresh OCR ids for tap-by-id, and the
+            // danger check before anything is tapped. Actions with no screen
+            // target (open_app, press_home, key, wait) skip the pre-capture.
+            let needsPreCapture = ["tap", "long_press", "swipe", "input_text"].contains(phoneAction)
+            if needsPreCapture {
+                let (pre, preErr) = PhoneControl.capture()
+                guard let pre else {
+                    toolOutput = "Error: could not see the phone screen before acting: \(preErr ?? "unknown error"). Call phone_screen first, or ask the user to start screen recording from Control Center."
+                    toolSuccess = false
+                    if msgIdx < messages.count, blockIdx < messages[msgIdx].blocks.count {
+                        messages[msgIdx].blocks[blockIdx].content = toolOutput
+                    }
+                    break
+                }
+                // Danger brake (PhoneAgent rule): refuse to tap next to a
+                // payment/password word. A danger word elsewhere on screen
+                // is a warning, not a refusal.
+                if let near = Self.phoneActDangerNear(action: phoneAction, toolArgs: toolArgs, capture: pre) {
+                    toolOutput = "Refused: the target is next to '\(near)' on the screen — a payment/password step. STOP the task and hand it to the user; do not tap anything."
+                    toolSuccess = false
+                    if msgIdx < messages.count, blockIdx < messages[msgIdx].blocks.count {
+                        messages[msgIdx].blocks[blockIdx].content = toolOutput
+                    }
+                    break
+                }
+                if let danger = PhoneControl.dangerHit(in: pre.ocrText) {
+                    actNotes.append("WARNING: the screen contains '\(danger)' — a payment/password step is visible. Do not tap anything related to it.")
+                }
+            }
+            var params: [String: Any] = [:]
+            for key in ["id", "x", "y", "x2", "y2", "direction", "text", "name", "usage", "cmd", "ms"] {
+                if let v = toolArgs[key] { params[key] = v }
+            }
+            let (actOK, actNote) = PhoneControl.perform(action: phoneAction, params: params)
+            // Always a fresh screenshot after executing, so the model can see
+            // whether the action worked (saves a round trip).
+            let (post, postErr) = PhoneControl.capture()
+            var actText = actNote
+            if !actNotes.isEmpty {
+                actText += "\n" + actNotes.joined(separator: "\n")
+            }
+            if let post {
+                let postStuck = PhoneControl.noteFrameSignature(post.signature)
+                actText += "\nScreen after the action (780x1688):\n\(post.ocrText)"
+                if let danger = PhoneControl.dangerHit(in: post.ocrText) {
+                    actText += "\nWARNING: the screen now shows '\(danger)' — a payment/password step. STOP the task and hand it to the user; do not tap anything."
+                }
+                if postStuck >= 4 {
+                    actText += "\nNOTE: the screen has not changed for \(postStuck) captures in a row — stop the task and report instead of repeating the same action."
+                }
+                let postPath = Self.writePhoneScreenshotCopy(post.jpeg, sessionId: sessionId)
+                if msgIdx < messages.count, blockIdx < messages[msgIdx].blocks.count {
+                    messages[msgIdx].blocks[blockIdx].content = actText
+                    messages[msgIdx].blocks[blockIdx].imageFilePath = postPath
+                }
+                toolImageData = post.jpeg
+                toolImageMimeType = "image/jpeg"
+                toolImageLinuxPath = nil
+            } else {
+                actText += "\n(Could not take a fresh screenshot after the action: \(postErr ?? "unknown error"). Call phone_screen to look again.)"
+                if msgIdx < messages.count, blockIdx < messages[msgIdx].blocks.count {
+                    messages[msgIdx].blocks[blockIdx].content = actText
+                }
+            }
+            toolOutput = actText
+            toolSuccess = actOK
+
+        default:
                 // [T-p1-delegate-task] Runs a sub agent in a hidden child
                 // session; wait mode blocks this tool call on it. See
                 // HelperRunner.swift.
@@ -1125,13 +1001,19 @@ extension AIChatViewModel {
             } else {
                 snapshot = ToolSnapshot(type: .text, text: toolOutput, mediaRef: nil, duration: toolDuration)
             }
-        case "file_write", "file_edit":
-            if let path = toolArgs["path"] as? String,
-               let hostURL = await resolvePathForDirectRead(path),
-               let fileContent = try? String(contentsOf: hostURL, encoding: .utf8) {
-                let lines = fileContent.components(separatedBy: "\n")
-                let preview = lines.prefix(200).joined(separator: "\n")
-                snapshot = ToolSnapshot(type: .text, text: preview, mediaRef: nil, duration: toolDuration)
+        case "phone_screen", "phone_act":
+            // [T-phone-control] Same as read_image: the model image when one
+            // was sent; the snapshot keeps it so a reload resends the bytes
+            // the live turn sent.
+            if let imagePath = (msgIdx < messages.count && blockIdx < messages[msgIdx].blocks.count)
+                ? messages[msgIdx].blocks[blockIdx].imageFilePath : nil,
+               let imageData = toolImageData ?? (try? Data(contentsOf: URL(fileURLWithPath: imagePath))),
+               let sid = sessionId {
+                let ref = await Self.saveReadImageSnapshotMedia(
+                    imagePath: imagePath, imageData: imageData, sessionId: sid,
+                    linuxPath: toolImageLinuxPath
+                )
+                snapshot = ToolSnapshot(type: .image, text: nil, mediaRef: ref, duration: toolDuration)
             } else {
                 snapshot = ToolSnapshot(type: .text, text: toolOutput, mediaRef: nil, duration: toolDuration)
             }
@@ -1212,14 +1094,13 @@ extension AIChatViewModel {
             finalOutput = String(toolOutput.prefix(maxToolResultLength))
                 + "\n\n[OUTPUT TRUNCATED] Showing the first \(maxToolResultLength) of \(toolOutput.count) chars. "
                 + "This content is already stored at the path you just read — it has not been copied "
-                + "anywhere new. To see more, call file_read on that same path again with the "
-                + "`offset` from the `next_offset=` value in the header above."
+                + "anywhere new. To see more, open that path in browser_use (navigate) via its minis_url."
             ctLogger.info("♻️[OffloadReadback] file_read id:\(tu.id.prefix(8)) returned offload-store content — truncated WITHOUT writing a second copy")
         } else if toolOutput.count > maxToolResultLength {
             let offloadResult = offloadToolOutput(toolOutput, toolName: tu.name, toolId: tu.id)
             let offloadMinisURL = linuxPathToMinisURL(offloadResult.linuxPath)
             let truncatedBody: String
-            if tu.name == "shell_execute" || tu.name == "browser_use" {
+            if tu.name == "browser_use" {
                 let halfLen = maxToolResultLength / 2
                 truncatedBody = String(toolOutput.prefix(halfLen))
                     + "\n\n...\n\n"
@@ -1227,10 +1108,13 @@ extension AIChatViewModel {
             } else {
                 truncatedBody = String(toolOutput.prefix(maxToolResultLength))
             }
+            // [Sandbox removed] file_read no longer exists: the saved output
+            // is read back through the browser (minis:// URLs), not a file tool.
+            let openAdvice = offloadMinisURL.map { _ in "\nOpen the minis_url above with browser_use (navigate) to read the complete output." } ?? ""
             finalOutput = truncatedBody
                 + "\n\n[OUTPUT TRUNCATED] Full output (\(toolOutput.count) chars) saved to: \(offloadResult.linuxPath)"
                 + (offloadMinisURL.map { "\nminis_url: \($0)" } ?? "")
-                + "\nUse file_read tool to read the complete output."
+                + openAdvice
         } else {
             finalOutput = toolOutput
         }
@@ -1346,6 +1230,50 @@ extension AIChatViewModel {
         return "\(Self.minisBrowserLinuxDir)/\(screenshotFilename)"
     }
 
+    /// phone_screen / phone_act: persist the latest phone screenshot so the
+    /// on-screen tool block can show it (same pattern as the browser
+    /// screenshot copy). Returns the iOS file path.
+    static func writePhoneScreenshotCopy(_ data: Data, sessionId: String?) -> String {
+        let timestamp = Int(Date().timeIntervalSince1970)
+        let filename = "phone_\(timestamp).jpg"
+        let sid = sessionId ?? "unknown"
+        let persistDir = Self.minisPersistentBase.appendingPathComponent(sid, isDirectory: true)
+            .appendingPathComponent("phone", isDirectory: true)
+        let fm = FileManager.default
+        try? fm.createDirectory(at: persistDir, withIntermediateDirectories: true)
+        let persistPath = persistDir.appendingPathComponent(filename)
+        try? data.write(to: persistPath)
+        return persistPath.path
+    }
+
+    /// phone_act: a JSON number (NSNumber) as Double, whatever its storage.
+    static func phoneArgDouble(_ value: Any?) -> Double? {
+        if let d = value as? Double { return d }
+        if let i = value as? Int { return Double(i) }
+        if let n = value as? NSNumber { return n.doubleValue }
+        return nil
+    }
+
+    /// phone_act danger brake: the danger word (if any) next to the action's
+    /// target point in model coords — by OCR id first, else x/y. Returns nil
+    /// when the action has no screen target or nothing dangerous is near it.
+    static func phoneActDangerNear(action: String, toolArgs: [String: Any], capture: PhoneControl.ScreenCapture) -> String? {
+        guard ["tap", "long_press", "input_text", "swipe"].contains(action) else { return nil }
+        var tx: Double?, ty: Double?
+        if let oid = phoneArgDouble(toolArgs["id"]) {
+            for item in capture.items {
+                if let iid = phoneArgDouble(item["id"]), Int(iid) == Int(oid) {
+                    tx = phoneArgDouble(item["x"]); ty = phoneArgDouble(item["y"])
+                    break
+                }
+            }
+        }
+        if tx == nil { tx = phoneArgDouble(toolArgs["x"]) }
+        if ty == nil { ty = phoneArgDouble(toolArgs["y"]) }
+        guard let x = tx, let y = ty else { return nil }
+        return PhoneControl.dangerNear(x: x, y: y)
+    }
+
     struct ReadImageInference {
         let data: Data
         let mimeType: String
@@ -1424,14 +1352,17 @@ extension AIChatViewModel {
 
 // BEGIN BatchToolOrder
 /// [T-batch-read-after-write] Which calls of one tool batch must wait for
-/// which. A reader (`read_image`, `file_read`) waits for every writer
-/// (`shell_execute`, `file_write`, `file_edit`) that precedes it in the
-/// batch, because the model routinely writes a file and reads it in the same
-/// turn. Nothing else is ordered: writers, browser calls, sub agents and
-/// readers with no writer before them still start together.
+/// which. A reader (`read_image`) waits for every writer that precedes it
+/// in the batch, because the model routinely writes a file and reads it in
+/// the same turn. Nothing else is ordered: writers, browser calls, sub agents
+/// and readers with no writer before them still start together.
+/// [Sandbox removed 2026-11-10] The writers were shell_execute, file_write
+/// and file_edit, and the other reader was file_read — all gone with the
+/// sandbox. No writer tool remains, so readers never wait; the sets are
+/// kept so the ordering logic stays intact if a writer tool returns.
 enum BatchToolOrder {
-    static let writers: Set<String> = ["shell_execute", "file_write", "file_edit"]
-    static let readers: Set<String> = ["read_image", "file_read"]
+    static let writers: Set<String> = []
+    static let readers: Set<String> = ["read_image"]
 
     /// Indices of the writers a call at `index` must wait for (empty when it
     /// is not a reader, or no writer precedes it).
